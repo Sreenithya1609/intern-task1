@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Customer Support Chatbot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chatbot-container {
+            width: 400px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h2 {
+            font-size: 1.4em;
+            margin-bottom: 5px;
+        }
+
+        .status {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .language-selector {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+
+        .language-selector select {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.bot {
+            text-align: left;
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .message.bot .message-content {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.user .message-content {
+            background: #4CAF50;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 16px;
+            background: #e3f2fd;
+            border-radius: 18px;
+            border-bottom-left-radius: 5px;
+            margin-bottom: 15px;
+            max-width: 80%;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #1976d2;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { 
+                transform: scale(0);
+            } 40% { 
+                transform: scale(1);
+            }
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 0.9em;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-container input:focus {
+            border-color: #4CAF50;
+        }
+
+        .send-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s, transform 0.1s;
+        }
+
+        .send-btn:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quick-btn:hover {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .escalation-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .satisfaction-rating {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .rating-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .rating-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .product-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .product-card h4 {
+            color: #1976d2;
+            margin-bottom: 5px;
+        }
+
+        .product-card p {
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="chatbot-container">
+        <div class="chat-header">
+            <div class="language-selector">
+                <select id="languageSelect" onchange="changeLanguage()">
+                    <option value="en">🇺🇸 EN</option>
+                    <option value="es">🇪🇸 ES</option>
+                    <option value="fr">🇫🇷 FR</option>
+                    <option value="de">🇩🇪 DE</option>
+                    <option value="zh">🇨🇳 ZH</option>
+                </select>
+            </div>
+            <h2 id="headerTitle">AI Customer Support</h2>
+            <div class="status" id="statusText">Online • Avg response time: 2s</div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-content" id="welcomeMessage">
+                    👋 Hello! I'm your AI assistant. How can I help you today?
+                </div>
+            </div>
+            <div class="quick-actions">
+                <button class="quick-btn" onclick="sendQuickMessage('product info')">📱 Product Info</button>
+                <button class="quick-btn" onclick="sendQuickMessage('technical support')">🔧 Tech Support</button>
+                <button class="quick-btn" onclick="sendQuickMessage('billing')">💳 Billing</button>
+                <button class="quick-btn" onclick="sendQuickMessage('return')">📦 Returns</button>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <div class="input-container">
+                <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chatbot Core System
+        class CustomerSupportChatbot {
+            constructor() {
+                this.currentLanguage = 'en';
+                this.conversationHistory = [];
+                this.userProfile = {
+                    escalationCount: 0,
+                    satisfactionScore: null,
+                    preferredLanguage: 'en',
+                    issues: []
+                };
+                this.isTyping = false;
+                this.knowledgeBase = this.initializeKnowledgeBase();
+                this.translations = this.initializeTranslations();
+                this.nlpProcessor = new NLPProcessor();
+                this.escalationThreshold = 3;
+            }
+
+            initializeKnowledgeBase() {
+                return {
+                    products: {
+                        smartphone: {
+                            name: "SmartPhone Pro",
+                            price: "$699",
+                            features: ["5G connectivity", "Triple camera", "All-day battery"],
+                            troubleshooting: {
+                                "battery": "Try reducing screen brightness and closing unused apps",
+                                "camera": "Restart the camera app or clear camera cache",
+                                "connectivity": "Toggle airplane mode on/off or restart device"
+                            }
+                        },
+                        laptop: {
+                            name: "PowerBook Ultra",
+                            price: "$1299",
+                            features: ["16GB RAM", "512GB SSD", "14-hour battery"],
+                            troubleshooting: {
+                                "slow": "Check for background processes and restart if needed",
+                                "overheating": "Ensure vents are clear and use on hard surfaces",
+                                "wifi": "Reset network settings or update WiFi drivers"
+                            }
+                        }
+                    },
+                    policies: {
+                        return: "30-day return policy with original packaging",
+                        warranty: "2-year manufacturer warranty included",
+                        shipping: "Free shipping on orders over $50"
+                    },
+                    faqs: {
+                        "how to track order": "You can track your order using the tracking number sent via email",
+                        "payment methods": "We accept all major credit cards, PayPal, and digital wallets",
+                        "delivery time": "Standard delivery takes 3-5 business days"
+                    }
+                };
+            }
+
+            initializeTranslations() {
+                return {
+                    en: {
+                        welcome: "👋 Hello! I'm your AI assistant. How can I help you today?",
+                        typing: "AI is typing...",
+                        escalation: "I'm connecting you with a human agent who can better assist you.",
+                        satisfaction: "How was your experience? Please rate it:",
+                        thanks: "Thank you for your feedback!",
+                        notUnderstood: "I'm not sure I understand. Could you please rephrase that?",
+                        productInfo: "Here's information about our products:",
+                        technicalSupport: "I can help you troubleshoot technical issues.",
+                        billing: "I can assist with billing and payment questions.",
+                        returns: "I can help you with returns and exchanges."
+                    },
+                    es: {
+                        welcome: "👋 ¡Hola! Soy tu asistente de IA. ¿Cómo puedo ayudarte hoy?",
+                        typing: "IA está escribiendo...",
+                        escalation: "Te estoy conectando con un agente humano que puede ayudarte mejor.",
+                        satisfaction: "¿Cómo fue tu experiencia? Por favor califícala:",
+                        thanks: "¡Gracias por tu comentario!",
+                        notUnderstood: "No estoy seguro de entender. ¿Podrías reformular eso?",
+                        productInfo: "Aquí tienes información sobre nuestros productos:",
+                        technicalSupport: "Puedo ayudarte a solucionar problemas técnicos.",
+                        billing: "Puedo ayudarte con preguntas de facturación y pagos.",
+                        returns: "Puedo ayudarte con devoluciones e intercambios."
+                    },
+                    fr: {
+                        welcome: "👋 Bonjour! Je suis votre assistant IA. Comment puis-je vous aider aujourd'hui?",
+                        typing: "L'IA tape...",
+                        escalation: "Je vous connecte avec un agent humain qui peut mieux vous aider.",
+                        satisfaction: "Comment était votre expérience? Veuillez l'évaluer:",
+                        thanks: "Merci pour votre retour!",
+                        notUnderstood: "Je ne suis pas sûr de comprendre. Pourriez-vous reformuler cela?",
+                        productInfo: "Voici des informations sur nos produits:",
+                        technicalSupport: "Je peux vous aider à résoudre les problèmes techniques.",
+                        billing: "Je peux vous aider avec les questions de facturation et de paiement.",
+                        returns: "Je peux vous aider avec les retours et les échanges."
+                    },
+                    de: {
+                        welcome: "👋 Hallo! Ich bin Ihr KI-Assistent. Wie kann ich Ihnen heute helfen?",
+                        typing: "KI tippt...",
+                        escalation: "Ich verbinde Sie mit einem menschlichen Agenten, der Ihnen besser helfen kann.",
+                        satisfaction: "Wie war Ihre Erfahrung? Bitte bewerten Sie sie:",
+                        thanks: "Vielen Dank für Ihr Feedback!",
+                        notUnderstood: "Ich bin mir nicht sicher, ob ich das verstehe. Könnten Sie das bitte umformulieren?",
+                        productInfo: "Hier sind Informationen über unsere Produkte:",
+                        technicalSupport: "Ich kann Ihnen bei der Fehlerbehebung technischer Probleme helfen.",
+                        billing: "Ich kann Ihnen bei Abrechnungs- und Zahlungsfragen helfen.",
+                        returns: "Ich kann Ihnen bei Rücksendungen und Umtäuschen helfen."
+                    },
+                    zh: {
+                        welcome: "👋 您好！我是您的AI助手。今天我可以为您做些什么？",
+                        typing: "AI正在输入...",
+                        escalation: "我正在为您连接人工客服，他们可以更好地帮助您。",
+                        satisfaction: "您的体验如何？请给出评价：",
+                        thanks: "感谢您的反馈！",
+                        notUnderstood: "我不太理解。您能重新表述一下吗？",
+                        productInfo: "以下是我们产品的信息：",
+                        technicalSupport: "我可以帮助您解决技术问题。",
+                        billing: "我可以协助处理账单和付款问题。",
+                        returns: "我可以帮助您处理退货和换货。"
+                    }
+                };
+            }
+
+            async processMessage(userMessage) {
+                this.conversationHistory.push({type: 'user', message: userMessage, timestamp: new Date()});
+                
+                // Show typing indicator
+                this.showTyping();
+                
+                // Process with NLP
+                const intent = this.nlpProcessor.detectIntent(userMessage);
+                const entities = this.nlpProcessor.extractEntities(userMessage);
+                
+                // Generate response based on intent
+                let response = await this.generateResponse(intent, entities, userMessage);
+                
+                // Hide typing indicator and show response
+                setTimeout(() => {
+                    this.hideTyping();
+                    this.addBotMessage(response);
+                    
+                    // Check for escalation
+                    if (this.shouldEscalate(intent, userMessage)) {
+                        this.escalateToHuman();
+                    }
+                }, 1000 + Math.random() * 1000);
+            }
+
+            async generateResponse(intent, entities, originalMessage) {
+                const lang = this.currentLanguage;
+                
+                switch(intent) {
+                    case 'greeting':
+                        return this.translations[lang].welcome;
+                        
+                    case 'product_inquiry':
+                        return this.handleProductInquiry(entities);
+                        
+                    case 'technical_support':
+                        return this.handleTechnicalSupport(entities, originalMessage);
+                        
+                    case 'billing':
+                        return this.handleBilling(originalMessage);
+                        
+                    case 'return_exchange':
+                        return this.handleReturns();
+                        
+                    case 'complaint':
+                        this.userProfile.escalationCount++;
+                        return "I understand your frustration. Let me help resolve this issue for you.";
+                        
+                    case 'satisfaction':
+                        return this.handleSatisfactionRating();
+                        
+                    default:
+                        return this.translations[lang].notUnderstood;
+                }
+            }
+
+            handleProductInquiry(entities) {
+                const lang = this.currentLanguage;
+                let response = this.translations[lang].productInfo + "\n\n";
+                
+                Object.values(this.knowledgeBase.products).forEach(product => {
+                    response += `<div class="product-card">
+                        <h4>${product.name}</h4>
+                        <p><strong>Price:</strong> ${product.price}</p>
+                        <p><strong>Features:</strong> ${product.features.join(', ')}</p>
+                    </div>`;
+                });
+                
+                return response;
+            }
+
+            handleTechnicalSupport(entities, message) {
+                const lang = this.currentLanguage;
+                let response = this.translations[lang].technicalSupport + "\n\n";
+                
+                // Simple keyword matching for troubleshooting
+                const keywords = message.toLowerCase();
+                if (keywords.includes('battery')) {
+                    response += "🔋 **Battery Issues:**\n";
+                    response += "• Reduce screen brightness\n";
+                    response += "• Close unused apps\n";
+                    response += "• Enable battery saver mode\n";
+                } else if (keywords.includes('wifi') || keywords.includes('internet')) {
+                    response += "📶 **WiFi Issues:**\n";
+                    response += "• Restart your router\n";
+                    response += "• Forget and reconnect to network\n";
+                    response += "• Check for interference\n";
+                } else if (keywords.includes('slow') || keywords.includes('performance')) {
+                    response += "⚡ **Performance Issues:**\n";
+                    response += "• Restart your device\n";
+                    response += "• Clear cache and temporary files\n";
+                    response += "• Check available storage space\n";
+                } else {
+                    response += "Please describe your technical issue in more detail so I can provide specific troubleshooting steps.";
+                }
+                
+                return response;
+            }
+
+            handleBilling(message) {
+                const lang = this.currentLanguage;
+                let response = this.translations[lang].billing + "\n\n";
+                
+                response += "💳 **Billing Information:**\n";
+                response += "• Payment methods: All major credit cards, PayPal\n";
+                response += "• Billing cycle: Monthly on the date of purchase\n";
+                response += "• For specific billing inquiries, please provide your order number\n";
+                
+                return response;
+            }
+
+            handleReturns() {
+                const lang = this.currentLanguage;
+                let response = this.translations[lang].returns + "\n\n";
+                
+                response += "📦 **Return Policy:**\n";
+                response += `• ${this.knowledgeBase.policies.return}\n`;
+                response += `• ${this.knowledgeBase.policies.warranty}\n`;
+                response += "• Items must be in original condition\n";
+                
+                return response;
+            }
+
+            handleSatisfactionRating() {
+                setTimeout(() => {
+                    this.showSatisfactionRating();
+                }, 500);
+                
+                return this.translations[this.currentLanguage].satisfaction;
+            }
+
+            shouldEscalate(intent, message) {
+                const escalationKeywords = ['angry', 'frustrated', 'terrible', 'awful', 'manager', 'supervisor', 'complaint'];
+                const hasEscalationKeyword = escalationKeywords.some(keyword => 
+                    message.toLowerCase().includes(keyword));
+                
+                return hasEscalationKeyword || 
+                       this.userProfile.escalationCount >= this.escalationThreshold ||
+                       intent === 'complex_issue';
+            }
+
+            escalateToHuman() {
+                setTimeout(() => {
+                    const escalationMsg = this.translations[this.currentLanguage].escalation;
+                    this.addBotMessage(`<div class="escalation-notice">
+                        🔄 ${escalationMsg}
+                        <br><br>
+                        <strong>Estimated wait time:</strong> 3-5 minutes<br>
+                        <strong>Agent ID:</strong> #${Math.floor(Math.random() * 1000) + 100}
+                    </div>`);
+                }, 1500);
+            }
+
+            showTyping() {
+                this.isTyping = true;
+                document.getElementById('typingIndicator').style.display = 'block';
+                this.scrollToBottom();
+            }
+
+            hideTyping() {
+                this.isTyping = false;
+                document.getElementById('typingIndicator').style.display = 'none';
+            }
+
+            addBotMessage(message) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message bot';
+                messageDiv.innerHTML = `<div class="message-content">${message}</div>`;
+                messagesContainer.appendChild(messageDiv);
+                
+                this.conversationHistory.push({type: 'bot', message: message, timestamp: new Date()});
+                this.scrollToBottom();
+            }
+
+            addUserMessage(message) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message user';
+                messageDiv.innerHTML = `<div class="message-content">${message}</div>`;
+                messagesContainer.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            showSatisfactionRating() {
+                const ratingHTML = `
+                    <div class="satisfaction-rating">
+                        <button class="rating-btn" onclick="rateSatisfaction(5)">😍</button>
+                        <button class="rating-btn" onclick="rateSatisfaction(4)">😊</button>
+                        <button class="rating-btn" onclick="rateSatisfaction(3)">😐</button>
+                        <button class="rating-btn" onclick="rateSatisfaction(2)">😕</button>
+                        <button class="rating-btn" onclick="rateSatisfaction(1)">😞</button>
+                    </div>
+                `;
+                this.addBotMessage(ratingHTML);
+            }
+
+            changeLanguage(newLang) {
+                this.currentLanguage = newLang;
+                this.userProfile.preferredLanguage = newLang;
+                this.updateUILanguage();
+            }
+
+            updateUILanguage() {
+                const translations = this.translations[this.currentLanguage];
+                document.getElementById('headerTitle').textContent = 'AI Customer Support';
+                document.getElementById('welcomeMessage').textContent = translations.welcome;
+                document.getElementById('messageInput').placeholder = 
+                    this.currentLanguage === 'en' ? 'Type your message...' :
+                    this.currentLanguage === 'es' ? 'Escribe tu mensaje...' :
+                    this.currentLanguage === 'fr' ? 'Tapez votre message...' :
+                    this.currentLanguage === 'de' ? 'Geben Sie Ihre Nachricht ein...' :
+                    '输入您的消息...';
+            }
+
+            scrollToBottom() {
+                const messagesContainer = document.getElementById('chatMessages');
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        }
+
+        // NLP Processor for intent detection and entity extraction
+        class NLPProcessor {
+            constructor() {
+                this.intents = {
+                    greeting: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'greetings'],
+                    product_inquiry: ['product', 'item', 'buy', 'purchase', 'price', 'cost', 'features', 'specification'],
+                    technical_support: ['help', 'problem', 'issue', 'broken', 'not working', 'error', 'bug', 'troubleshoot', 'fix'],
+                    billing: ['bill', 'payment', 'charge', 'refund', 'money', 'cost', 'invoice', 'subscription'],
+                    return_exchange: ['return', 'exchange', 'refund', 'send back', 'wrong item', 'defective'],
+                    complaint: ['angry', 'frustrated', 'terrible', 'awful', 'disappointed', 'unsatisfied'],
+                    satisfaction: ['rate', 'feedback', 'review', 'satisfaction', 'experience']
+                };
+            }
+
+            detectIntent(message) {
+                const lowerMessage = message.toLowerCase();
+                let maxScore = 0;
+                let detectedIntent = 'unknown';
+
+                for (const [intent, keywords] of Object.entries(this.intents)) {
+                    let score = 0;
+                    keywords.forEach(keyword => {
+                        if (lowerMessage.includes(keyword)) {
+                            score += keyword.length / lowerMessage.length;
+                        }
+                    });
+                    
+                    if (score > maxScore) {
+                        maxScore = score;
+                        detectedIntent = intent;
+                    }
+                }
+
+                return maxScore > 0.05 ? detectedIntent : 'unknown';
+            }
+
+            extractEntities(message) {
+                const entities = {
+                    products: [],
+                    numbers: [],
+                    emails: []
+                };
+
+                // Extract product mentions
+                const productKeywords = ['phone', 'smartphone', 'laptop', 'computer', 'tablet'];
+                productKeywords.forEach(product => {
+                    if (message.toLowerCase().includes(product)) {
+                        entities.products.push(product);
+                    }
+                });
+
+                // Extract numbers (order numbers, prices, etc.)
+                const numbers = message.match(/\d+/g);
+                if (numbers) {
+                    entities.numbers = numbers;
+                }
+
+                // Extract email addresses
+                const emails = message.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g);
+                if (emails) {
+                    entities.emails = emails;
+                }
+
+                return entities;
+            }
+        }
+
+        // Initialize chatbot
+        const chatbot = new CustomerSupportChatbot();
+
+        // UI Event Handlers
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                chatbot.addUserMessage(message);
+                chatbot.processMessage(message);
+                input.value = '';
+            }
+        }
+
+        function sendQuickMessage(message) {
+            chatbot.addUserMessage(message);
+            chatbot.processMessage(message);
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function changeLanguage() {
+            const select = document.getElementById('languageSelect');
+            chatbot.changeLanguage(select.value);
+        }
+
+        function rateSatisfaction(rating) {
+            chatbot.userProfile.satisfactionScore = rating;
+            const ratingText = ['😞 Poor', '😕 Fair', '😐 Average', '😊 Good', '😍 Excellent'][rating - 1];
+            chatbot.addUserMessage(`Rating: ${ratingText}`);
+            
+            setTimeout(() => {
+                chatbot.addBotMessage(chatbot.translations[chatbot.currentLanguage].thanks);
+            }, 500);
+        }
+
+        // Initialize the interface
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('messageInput').focus();
+        });
+    </script>
+</body>
+</html>
